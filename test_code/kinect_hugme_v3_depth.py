@@ -92,13 +92,16 @@ def get_img(mode):
         
         #background Substraction
         #Learning Rate Parameter / -1 auto, 0 not updated at all, 1 new from last frame
-        fgMask = backSub.apply(frame, learningRate=0) 
+        fgMask = backSub.apply(frame, learningRate=-1) 
         
-        # threshold to set pixels that are too close the background color black, will be set to 0 
-        # fgMask consits then only of 0 (in black) or 255 (white)
-        # after the Background subsctration there could be still a shadow detected which is grey
-        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY) #255 is white
+        #threshold to get rid of any other color then black and white
+        #anything lighter then 127 will be set to 255 (white) anything lower to 0 (black)
+        # maybe we dont need this if we turn shadows off
+        #thresold expects a single channel image // with shadows enabled its a greyscale image
+        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
         
+        # erosion 
+        #fgMask = cv2.erode(fgMask, kernel, iterations = 1)
         #fgMaskx = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
         #cv2.imshow('FGMaskRaw', fgMaskRaw)
 
@@ -109,10 +112,20 @@ def get_img(mode):
         frame = freenect.sync_get_depth()[0] # gets the Kinect depth image
         frame = 255 * np.logical_and(frame >= DEPTH - THRESHOLD,
                                  frame <= DEPTH + THRESHOLD)
+
+        # we make sure its a 8-bit single-channel image // do we need this
         frame = frame.astype(np.uint8)
+
+        #background subsration // do we need this? // we do this already with the threshold
         fgMask = backSub_depth.apply(frame, learningRate=-1)
+
+        #do we need this // is there still grey?
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+
+        #erosion
         #fgMask = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
+        
+        #
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels 
 
     # Problem: this function gives us sometimes only one blob instead of two

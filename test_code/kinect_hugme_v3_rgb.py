@@ -11,9 +11,9 @@ import gpiozero
 ### GLOBAL VARIABLES
 kernel = np.ones((3,3), np.uint8) #small structuring element
 kernel_big = np.ones((9,9), np.uint8) #big structuring element
-backSub = cv2.createBackgroundSubtractorKNN()
-backSub = cv2.createBackgroundSubtractorKNN(history=100,dist2Threshold=400.0, detectShadows=False)
-#backSub2 = cv2.createBackgroundSubtractorMOG() #different Background Substration algorithm
+#backSub = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=400.0, bool detectShadows=true)#standard parameters
+backSub = cv2.createBackgroundSubtractorKNN(history=500,dist2Threshold=400.0, detectShadows=False)
+#backSub2 = cv2.createBackgroundSubtractorMOG(history=500, dist2Threshold=400.0, detectShadows=False)) #different Background Substration algorithm
 #backSub = cv2.createBackgroundSubtractorKNN()
 #backSub = cv2.createBackgroundSubtractorKNN()
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
@@ -89,26 +89,47 @@ def get_img(mode):
         # gets one frame from the RGB camera
         frame = freenect.sync_get_video()[0] 
         
+        #background subsraction
         #Learning Rate Parameter / -1 auto, 0 not updated at all, 1 new from last frame
         fgMask = backSub.apply(frame, learningRate=-1) 
         
         #threshold to get rid of any other color then black and white
-        ## pixel,thar are to close the background coloar black, will be set to 0 
-        # fgMask consits then only of 0 (in black) or 255 (white)
-        #ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
-        
+        #anything lighter then 127 will be set to 255 (white) anything lower to 0 (black)
+        # maybe we dont need this if we turn shadows off
+        #thresold expects a single channel image // with shadows enabled its a greyscale image
+        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+
+        #erosion
+        #fgMask = cv2.erode(fgMask, kernel, iterations = 1)
         #fgMaskx = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
         #cv2.imshow('FGMaskRaw', fgMaskRaw)
-        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels 
+        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
+
+        #change color space from grayscale to BGR so we can draw a colored box later around blobs
+        #col = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
+
     elif (mode == IMG_DEPTH):
         frame = freenect.sync_get_depth()[0] # gets the Kinect depth image
         frame = 255 * np.logical_and(frame >= DEPTH - THRESHOLD,
                                  frame <= DEPTH + THRESHOLD)
-        frame = frame.astype(np.uint8)
+
+        # we make sure its a 8-bit single-channel image // do we need this
+        #frame = frame.astype(np.uint8)
+
+        #background subsration // do we need this? // we do this already with the threshold
         fgMask = backSub.apply(frame, learningRate=-1)
+
+        #do we need this // there are not grey colors in the depth image after the threshold
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+
+        #erosion
         fgMask = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
-        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels 
+
+        # do we need this
+        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
+
+        #change color space from grayscale to BGR so we can draw a colored box later around blobs
+        #col = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
 
     # Problem: this function gives us sometimes only one blob instead of two
     ret, labels, stats, centroids = cv2.connectedComponentsWithStats(fgMask)
