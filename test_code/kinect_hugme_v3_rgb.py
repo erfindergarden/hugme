@@ -9,9 +9,11 @@ from collections import deque
 import gpiozero
 
 ### GLOBAL VARIABLES
-kernel = np.ones((3,3), np.uint8)
-kernel_big = np.ones((9,9), np.uint8)
+kernel = np.ones((3,3), np.uint8) #small structuring element
+kernel_big = np.ones((9,9), np.uint8) #big structuring element
 backSub = cv2.createBackgroundSubtractorKNN()
+backSub = cv2.createBackgroundSubtractorKNN((history=100,dist2Threshold=400.0, detectShadows=False))
+#backSub2 = cv2.createBackgroundSubtractorMOG() #different Background Substration algorithm
 #backSub = cv2.createBackgroundSubtractorKNN()
 #backSub = cv2.createBackgroundSubtractorKNN()
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
@@ -84,9 +86,17 @@ def get_img(mode):
     #text_trap = io.StringIO()
     #sys.stderr = text_trap
     if (mode == IMG_RGB):
-        frame = freenect.sync_get_video()[0] # gets one frame from the RGB camera
-        fgMask = backSub.apply(frame, learningRate=-1) #
-        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+        # gets one frame from the RGB camera
+        frame = freenect.sync_get_video()[0] 
+        
+        #Learning Rate Parameter / -1 auto, 0 not updated at all, 1 new from last frame
+        fgMask = backSub.apply(frame, learningRate=-1) 
+        
+        #threshold to get rid of any other color then black and white
+        ## pixel,thar are to close the background coloar black, will be set to 0 
+        # fgMask consits then only of 0 (in black) or 255 (white)
+        #ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+        
         #fgMaskx = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
         #cv2.imshow('FGMaskRaw', fgMaskRaw)
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels 

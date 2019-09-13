@@ -6,7 +6,9 @@ import frame_convert2
 import numpy as np
 import math, time, io, sys
 from collections import deque
+from time import sleep
 import gpiozero
+
 
 ### GLOBAL VARIABLES
 kernel = np.ones((3,3), np.uint8) #small structuring element
@@ -83,13 +85,26 @@ def get_img(mode):
     #text_trap = io.StringIO()
     #sys.stderr = text_trap
     if (mode == IMG_RGB):
-        frame = freenect.sync_get_video()[0] # gets the Kinect RGB image
+        # gets 1 frame of the the Kinect as RGB image
+        frame = freenect.sync_get_video()[0] 
+        
         #frame = cv2.VideoCapture(0) #make an option to use with normal camera
-        fgMask = backSub.apply(frame, learningRate=0) #Learning Rate Parameter / -1 auto, 0 update background from Last frame, 1 do not update at all
-        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY) #do we need this?
+        
+        #background Substraction
+        #Learning Rate Parameter / -1 auto, 0 not updated at all, 1 new from last frame
+        fgMask = backSub.apply(frame, learningRate=0) 
+        
+        # threshold to set pixels that are too close the background color black, will be set to 0 
+        # fgMask consits then only of 0 (in black) or 255 (white)
+        # after the Background subsctration there could be still a shadow detected which is grey
+        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY) #255 is white
+        
         #fgMaskx = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
         #cv2.imshow('FGMaskRaw', fgMaskRaw)
-        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels 
+
+        #closes gaps smaller than 9x9 pixels
+        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big)  
+    
     elif (mode == IMG_DEPTH):
         frame = freenect.sync_get_depth()[0] # gets the Kinect depth image
         frame = 255 * np.logical_and(frame >= DEPTH - THRESHOLD,
@@ -144,14 +159,14 @@ def checkHugEvent(blobs):
         valid = 0
 
     if valid == 1:
-        # time.sleep(1) # maybe wait 1 second,
+        #sleep(1) # maybe wait 1 second,
                         # because a blob is already detected when arms cross over
         print("Light on")
         relay.on() # here the relay will be turned on
-        time.sleep(0.5)
+        sleep(0.5)
         relay.off()
         relay.on()
-        time.sleep(20)
+        sleep(20)
         rela.off()
 
         #dummy = raw_input("Press key for next loop...") # Warten auf Tastatur, muss im Realbetrieb aus.
@@ -159,7 +174,7 @@ def checkHugEvent(blobs):
 
 
 def show_video():
-    cv2.imshow('Video', frame_convert2.video_cv(frame)
+    cv2.imshow('Video', frame_convert2.video_cv(frame))
 
 ### INIT
 # Activate windows only for debug: 
@@ -167,7 +182,7 @@ cv2.namedWindow('Video')
 cv2.namedWindow('FGMask')
 #cv2.namedWindow('FGMaskRaw')
 #cv2.namedWindow('Labels')
-#relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
+relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
 print('Press ESC in window to stop')
 
 # It seems the first captures are wrong and/or the library needs some time
@@ -189,7 +204,7 @@ while 1:
     #    blobs = Blob.getBlobs(labels, stats)
 
     checkHugEvent(blobs) 
-    time.sleep(TIME_BETWEEN_FRAMES)
+    sleep(TIME_BETWEEN_FRAMES)
     dummy = raw_input("Press key for next loop...")
  #  labeled_img = imshow_components(fgMask)
  #  cv2.imshow('Labels', labeled_img)
