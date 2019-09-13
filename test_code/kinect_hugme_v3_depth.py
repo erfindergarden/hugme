@@ -9,11 +9,10 @@ from collections import deque
 import gpiozero
 
 ### GLOBAL VARIABLES
-kernel = np.ones((3,3), np.uint8)
-kernel_big = np.ones((9,9), np.uint8)
+kernel = np.ones((3,3), np.uint8) #small structuring element
+kernel_big = np.ones((9,9), np.uint8) #big structuring element
 backSub = cv2.createBackgroundSubtractorKNN()
-#backSub = cv2.createBackgroundSubtractorKNN()
-#backSub = cv2.createBackgroundSubtractorKNN()
+backSub_depth = cv2.createBackgroundSubtractorKNN(history=100,dist2Threshold=400.0, detectShadows=True)
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
 if CACHE_SIZE < 4: CACHE_SIZE = 4
 pre_distances = deque([10000] * CACHE_SIZE) # stores previous distances of the two biggest blobs to recognize valid movement
@@ -84,9 +83,10 @@ def get_img(mode):
     #text_trap = io.StringIO()
     #sys.stderr = text_trap
     if (mode == IMG_RGB):
-        frame = freenect.sync_get_video()[0] # gets one frame from the RGB camera
-        fgMask = backSub.apply(frame, learningRate=-1) #
-        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+        frame = freenect.sync_get_video()[0] # gets the Kinect RGB image
+        #frame = cv2.VideoCapture(0) #make an option to use with normal camera
+        fgMask = backSub.apply(frame, learningRate=0) #Learning Rate Parameter / -1 auto, 0 update background from Last frame, 1 do not update at all
+        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY) #do we need this?
         #fgMaskx = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
         #cv2.imshow('FGMaskRaw', fgMaskRaw)
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels 
@@ -95,9 +95,9 @@ def get_img(mode):
         frame = 255 * np.logical_and(frame >= DEPTH - THRESHOLD,
                                  frame <= DEPTH + THRESHOLD)
         frame = frame.astype(np.uint8)
-        fgMask = backSub.apply(frame, learningRate=-1)
+        fgMask = backSub_depth.apply(frame, learningRate=-1)
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
-        fgMask = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
+        #fgMask = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels 
 
     # Problem: this function gives us sometimes only one blob instead of two
@@ -152,7 +152,7 @@ def checkHugEvent(blobs):
         relay.off()
         relay.on()
         time.sleep(20)
-        relay.off()
+        rela.off()
 
         #dummy = raw_input("Press key for next loop...") # Warten auf Tastatur, muss im Realbetrieb aus.
         pre_distances = deque([10000] * CACHE_SIZE) # reset previous distances
@@ -167,20 +167,20 @@ cv2.namedWindow('Video')
 cv2.namedWindow('FGMask')
 #cv2.namedWindow('FGMaskRaw')
 #cv2.namedWindow('Labels')
-relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
+#relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
 print('Press ESC in window to stop')
 
 # It seems the first captures are wrong and/or the library needs some time
 # to initialize the background image, so some images are skipped at start:
 for num in range(1,10):
-    #get_img(IMG_DEPTH)
-    get_img(IMG_RGB)
+    get_img(IMG_DEPTH)
+    #get_img(IMG_RGB)
 
 ### LOOP
 while 1:
     #relay.toggle() #test relay
-    ret, frame, fgMask, labels, stats, centroids = get_img(IMG_RGB) # switch back to IMG_RGB
-    #ret, frame, fgMask, labels, stats, centroids = get_img(IMG_DEPTH)
+    #ret, frame, fgMask, labels, stats, centroids = get_img(IMG_RGB) # switch back to IMG_RGB
+    ret, frame, fgMask, labels, stats, centroids = get_img(IMG_DEPTH)
     print("\033[H\033[J") # clear screen
     blobs = Blob.getBlobs(labels, stats, centroids)
     # If no blob was found, try depth image:
@@ -190,7 +190,7 @@ while 1:
 
     checkHugEvent(blobs) 
     time.sleep(TIME_BETWEEN_FRAMES)
-    #dummy = raw_input("Press key for next loop...")
+    dummy = raw_input("Press key for next loop...")
  #  labeled_img = imshow_components(fgMask)
  #  cv2.imshow('Labels', labeled_img)
     cv2.imshow('FGMask', fgMask)
