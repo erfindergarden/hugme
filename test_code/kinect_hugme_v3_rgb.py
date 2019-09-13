@@ -12,7 +12,7 @@ import gpiozero
 kernel = np.ones((3,3), np.uint8) #small structuring element
 kernel_big = np.ones((9,9), np.uint8) #big structuring element
 backSub = cv2.createBackgroundSubtractorKNN()
-backSub = cv2.createBackgroundSubtractorKNN((history=100,dist2Threshold=400.0, detectShadows=False))
+backSub = cv2.createBackgroundSubtractorKNN(history=100,dist2Threshold=400.0, detectShadows=False)
 #backSub2 = cv2.createBackgroundSubtractorMOG() #different Background Substration algorithm
 #backSub = cv2.createBackgroundSubtractorKNN()
 #backSub = cv2.createBackgroundSubtractorKNN()
@@ -169,7 +169,7 @@ def checkHugEvent(blobs):
 
 
 def show_video():
-    cv2.imshow('Video', frame_convert2.video_cv(frame)
+    cv2.imshow('Video', frame_convert2.video_cv(frame))
 
 ### INIT
 # Activate windows only for debug: 
