@@ -7,6 +7,7 @@ import numpy as np
 import math, time, io, sys
 from collections import deque
 import gpiozero
+from time import sleep
 
 ### GLOBAL VARIABLES
 kernel = np.ones((3,3), np.uint8)
@@ -16,7 +17,7 @@ CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 
 if CACHE_SIZE < 4: CACHE_SIZE = 4
 pre_distances = deque([10000] * CACHE_SIZE) # stores previous distances of the two biggest blobs to recognize valid movement
 BLOB_MAX_SIZE = 40000
-BLOB_MIN_SIZE = 1000
+BLOB_MIN_SIZE = 600
 IMG_DEPTH = 0
 IMG_RGB = 1
 THRESHOLD = 814
@@ -142,11 +143,11 @@ def checkHugEvent(blobs):
         valid = 0
 
     if valid == 1:
-        # time.sleep(1) # maybe wait 1 second,
+        # sleep(1) # maybe wait 1 second,
                         # because a blob is already detected when arms cross over
         print("Light on")
         relay.on() # here the relay will be turned on
-        time.sleep(0.5)
+        sleep(0.5)
         relay.off()
         relay.on()
         time.sleep(20)
