@@ -7,11 +7,13 @@ import numpy as np
 import math, time, io, sys
 from collections import deque
 import gpiozero
+from time import sleep
 
 ### GLOBAL VARIABLES
 kernel = np.ones((3,3), np.uint8) #small structuring element
 kernel_big = np.ones((9,9), np.uint8) #big structuring element
-cv2.createBackgroundSubtractorKNN(history=10000, dist2Threshold=50, detectShadows=False)
+backSub = cv2.createBackgroundSubtractorKNN(history=10000, dist2Threshold=50, detectShadows=False)
+
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
 if CACHE_SIZE < 4: CACHE_SIZE = 4
 pre_distances = deque([10000] * CACHE_SIZE) # stores previous distances of the two biggest blobs to recognize valid movement
@@ -21,8 +23,9 @@ IMG_DEPTH = 0
 IMG_RGB = 1
 THRESHOLD = 814
 DEPTH = 152
-TIME_BETWEEN_FRAMES = .3 # good values for testing .3 (fast), 1 (slow)
+TIME_BETWEEN_FRAMES = 0 # good values for testing .3 (fast), 1 (slow)
 RELAY_PIN = 21
+relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
 
 ### CLASSES
 class Blob:
@@ -96,7 +99,7 @@ def get_img(mode):
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
 
         #erosion
-        #fgMask = cv2.erode(fgMask, kernel, iterations = 2)
+        fgMask = cv2.erode(fgMask, kernel, iterations = 2)
      
      
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
@@ -171,14 +174,14 @@ def checkHugEvent(blobs):
         valid = 0
 
     if valid == 1:
-        # time.sleep(1) # maybe wait 1 second,
+        #sleep(1) # maybe wait 1 second,
                         # because a blob is already detected when arms cross over
         print("Light on")
         relay.on() # here the relay will be turned on
-        time.sleep(0.5)
+        sleep(0.5)
         relay.off()
         relay.on()
-        time.sleep(20)
+        sleep(20)
         relay.off()
 
         #dummy = raw_input("Press key for next loop...") # Warten auf Tastatur, muss im Realbetrieb aus.
@@ -194,7 +197,7 @@ cv2.namedWindow('Video')
 cv2.namedWindow('FGMask')
 #cv2.namedWindow('FGMaskRaw')
 #cv2.namedWindow('Labels')
-relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
+
 print('Press ESC in window to stop')
 
 # It seems the first captures are wrong and/or the library needs some time
