@@ -91,7 +91,7 @@ def get_img(mode):
         
         #threshold to get rid of any other color then black and white
         #anything lighter then 127 will be set to 255 (white) anything lower to 0 (black)
-        # maybe we dont need this if we turn shadows off
+        # we dont need this if we turn shadows off
         #thresold expects a single channel image // with shadows enabled its a greyscale image
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
 
