@@ -119,13 +119,17 @@ def get_img(mode):
         fgMask = backSub.apply(frame, learningRate=-1)
 
         #do we need this // there are not grey colors in the depth image after the threshold
-        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+        #ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
 
         #erosion
-        fgMask = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
+        #fgMask = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
+        
+        #dilation
+        
+        #fgMask = cv2.dilate(fgMask, kernel, iterations=1)
 
         # do we need this
-        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
+        #fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
 
         #change color space from grayscale to BGR so we can draw a colored box later around blobs
         #col = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
