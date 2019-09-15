@@ -1,7 +1,7 @@
 # hugme
 
 
-Code for detection of hugging with a kinectv1 and a rasperry pi or an installtion in vienna. 
+Code for detection of hugging with a kinectv1 and a rasperry pi for an installtion in vienna. 
 
 We are using both the rgb and the depth data of the kinect. 
 
