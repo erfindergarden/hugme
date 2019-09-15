@@ -12,18 +12,20 @@ from time import sleep
 ### GLOBAL VARIABLES
 kernel = np.ones((3,3), np.uint8) #small structuring element
 kernel_big = np.ones((9,9), np.uint8) #big structuring element
+
+#here you can adjust the parameter of the background substract, change the second variable lower to make it more sensitive
 backSub = cv2.createBackgroundSubtractorKNN(history=10000, dist2Threshold=50, detectShadows=False)
 
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
 if CACHE_SIZE < 4: CACHE_SIZE = 4
 pre_distances = deque([10000] * CACHE_SIZE) # stores previous distances of the two biggest blobs to recognize valid movement
 BLOB_MAX_SIZE = 40000
-BLOB_MIN_SIZE = 1000
+BLOB_MIN_SIZE = 3000
 IMG_DEPTH = 0
 IMG_RGB = 1
 THRESHOLD = 814
 DEPTH = 152
-TIME_BETWEEN_FRAMES = 0 # good values for testing .3 (fast), 1 (slow)
+TIME_BETWEEN_FRAMES = 0.3 # good values for testing .3 (fast), 1 (slow)
 RELAY_PIN = 21
 relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
 
@@ -96,10 +98,10 @@ def get_img(mode):
         #anything lighter then 127 will be set to 255 (white) anything lower to 0 (black)
         # we dont need this if we turn shadows off
         #thresold expects a single channel image // with shadows enabled its a greyscale image
-        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+        #ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
 
         #erosion
-        fgMask = cv2.erode(fgMask, kernel, iterations = 2)
+        #fgMask = cv2.erode(fgMask, kernel, iterations = 2)
      
      
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
@@ -119,10 +121,14 @@ def get_img(mode):
         fgMask = backSub.apply(frame, learningRate=-1)
 
         #do we need this // there are not grey colors in the depth image after the threshold
-        ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+        #ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
 
         #erosion
-        fgMask = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
+        #fgMask = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
+        
+        #dilation
+        
+        #fgMask = cv2.dilate(fgMask, kernel, iterations=1)
 
         # do we need this
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
@@ -193,7 +199,7 @@ def show_video():
 
 ### INIT
 # Activate windows only for debug: 
-cv2.namedWindow('Video')
+#cv2.namedWindow('Video')
 cv2.namedWindow('FGMask')
 #cv2.namedWindow('FGMaskRaw')
 #cv2.namedWindow('Labels')
@@ -219,12 +225,12 @@ while 1:
     #    blobs = Blob.getBlobs(labels, stats)
 
     checkHugEvent(blobs) 
-    time.sleep(TIME_BETWEEN_FRAMES)
+    sleep(TIME_BETWEEN_FRAMES)
     #dummy = raw_input("Press key for next loop...")
  #  labeled_img = imshow_components(fgMask)
  #  cv2.imshow('Labels', labeled_img)
     cv2.imshow('FGMask', fgMask)
-    show_video()
+    #show_video()
     if cv2.waitKey(10) == 27:
         break
 
