@@ -11,11 +11,7 @@ import gpiozero
 ### GLOBAL VARIABLES
 kernel = np.ones((3,3), np.uint8) #small structuring element
 kernel_big = np.ones((9,9), np.uint8) #big structuring element
-#backSub = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=400.0, bool detectShadows=true)#standard parameters
-backSub = cv2.createBackgroundSubtractorKNN(history=500,dist2Threshold=400.0, detectShadows=False)
-#backSub2 = cv2.createBackgroundSubtractorMOG(history=500, dist2Threshold=400.0, detectShadows=False)) #different Background Substration algorithm
-#backSub = cv2.createBackgroundSubtractorKNN()
-#backSub = cv2.createBackgroundSubtractorKNN()
+cv2.createBackgroundSubtractorKNN(history=10000, dist2Threshold=50, detectShadows=False)
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
 if CACHE_SIZE < 4: CACHE_SIZE = 4
 pre_distances = deque([10000] * CACHE_SIZE) # stores previous distances of the two biggest blobs to recognize valid movement
@@ -100,9 +96,9 @@ def get_img(mode):
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
 
         #erosion
-        #fgMask = cv2.erode(fgMask, kernel, iterations = 1)
-        #fgMaskx = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
-        #cv2.imshow('FGMaskRaw', fgMaskRaw)
+        #fgMask = cv2.erode(fgMask, kernel, iterations = 2)
+     
+     
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
 
         #change color space from grayscale to BGR so we can draw a colored box later around blobs

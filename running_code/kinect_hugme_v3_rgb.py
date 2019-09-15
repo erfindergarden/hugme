@@ -7,17 +7,16 @@ import numpy as np
 import math, time, io, sys
 from collections import deque
 import gpiozero
-from time import sleep
 
 ### GLOBAL VARIABLES
-kernel = np.ones((3,3), np.uint8)
-kernel_big = np.ones((9,9), np.uint8)
-backSub = cv2.createBackgroundSubtractorKNN()
+kernel = np.ones((3,3), np.uint8) #small structuring element
+kernel_big = np.ones((9,9), np.uint8) #big structuring element
+cv2.createBackgroundSubtractorKNN(history=10000, dist2Threshold=50, detectShadows=False)
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
 if CACHE_SIZE < 4: CACHE_SIZE = 4
 pre_distances = deque([10000] * CACHE_SIZE) # stores previous distances of the two biggest blobs to recognize valid movement
 BLOB_MAX_SIZE = 40000
-BLOB_MIN_SIZE = 600
+BLOB_MIN_SIZE = 1000
 IMG_DEPTH = 0
 IMG_RGB = 1
 THRESHOLD = 814
@@ -83,21 +82,50 @@ def get_img(mode):
     #text_trap = io.StringIO()
     #sys.stderr = text_trap
     if (mode == IMG_RGB):
-        frame = freenect.sync_get_video()[0] # gets one frame from the RGB camera
-        fgMask = backSub.apply(frame, learningRate=-1) #
+        # gets one frame from the RGB camera
+        frame = freenect.sync_get_video()[0] 
+        
+        #background subsraction
+        #Learning Rate Parameter / -1 auto, 0 not updated at all, 1 new from last frame
+        fgMask = backSub.apply(frame, learningRate=-1) 
+        
+        #threshold to get rid of any other color then black and white
+        #anything lighter then 127 will be set to 255 (white) anything lower to 0 (black)
+        # maybe we dont need this if we turn shadows off
+        #thresold expects a single channel image // with shadows enabled its a greyscale image
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
-        #fgMaskx = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
-        #cv2.imshow('FGMaskRaw', fgMaskRaw)
-        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels 
+
+        #erosion
+        #fgMask = cv2.erode(fgMask, kernel, iterations = 2)
+     
+     
+        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
+
+        #change color space from grayscale to BGR so we can draw a colored box later around blobs
+        #col = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
+
     elif (mode == IMG_DEPTH):
         frame = freenect.sync_get_depth()[0] # gets the Kinect depth image
         frame = 255 * np.logical_and(frame >= DEPTH - THRESHOLD,
                                  frame <= DEPTH + THRESHOLD)
-        frame = frame.astype(np.uint8)
+
+        # we make sure its a 8-bit single-channel image // do we need this
+        #frame = frame.astype(np.uint8)
+
+        #background subsration // do we need this? // we do this already with the threshold
         fgMask = backSub.apply(frame, learningRate=-1)
+
+        #do we need this // there are not grey colors in the depth image after the threshold
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+
+        #erosion
         fgMask = cv2.erode(fgMask, kernel, iterations = 1) # morphological erode with 3x3
-        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels 
+
+        # do we need this
+        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
+
+        #change color space from grayscale to BGR so we can draw a colored box later around blobs
+        #col = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
 
     # Problem: this function gives us sometimes only one blob instead of two
     ret, labels, stats, centroids = cv2.connectedComponentsWithStats(fgMask)
@@ -143,11 +171,11 @@ def checkHugEvent(blobs):
         valid = 0
 
     if valid == 1:
-        # sleep(1) # maybe wait 1 second,
+        # time.sleep(1) # maybe wait 1 second,
                         # because a blob is already detected when arms cross over
         print("Light on")
         relay.on() # here the relay will be turned on
-        sleep(0.5)
+        time.sleep(0.5)
         relay.off()
         relay.on()
         time.sleep(20)
@@ -158,7 +186,7 @@ def checkHugEvent(blobs):
 
 
 def show_video():
-    cv2.imshow('Video', frame_convert2.video_cv(freenect.sync_get_video()[0]))
+    cv2.imshow('Video', frame_convert2.video_cv(frame))
 
 ### INIT
 # Activate windows only for debug: 
@@ -194,7 +222,6 @@ while 1:
  #  cv2.imshow('Labels', labeled_img)
     cv2.imshow('FGMask', fgMask)
     show_video()
- #  cv2.imshow('Video', frame_convert2.video_cv(frame))
     if cv2.waitKey(10) == 27:
         break
 
