@@ -12,6 +12,8 @@ from time import sleep
 ### GLOBAL VARIABLES
 kernel = np.ones((3,3), np.uint8) #small structuring element
 kernel_big = np.ones((9,9), np.uint8) #big structuring element
+
+#here you can adjust the parameter of the background substract, change the second variable lower to make it more sensitive
 backSub = cv2.createBackgroundSubtractorKNN(history=10000, dist2Threshold=50, detectShadows=False)
 
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
@@ -129,7 +131,7 @@ def get_img(mode):
         #fgMask = cv2.dilate(fgMask, kernel, iterations=1)
 
         # do we need this
-        #fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
+        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel_big) # closes gaps smaller than 9x9 pixels
 
         #change color space from grayscale to BGR so we can draw a colored box later around blobs
         #col = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
