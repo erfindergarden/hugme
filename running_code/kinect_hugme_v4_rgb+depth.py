@@ -14,9 +14,9 @@ import gpiozero
 KERNEL = np.ones((3,3), np.uint8)
 KERNEL_BIG = np.ones((9,9), np.uint8)
 # Create two independent background substractors, because RGB and depth image might need different parameters:
-# NOTE: ADAPT THE BG SUBSTRACTOR PARAMETERS ON THE LOCATION YOU SET UP THE KINECT TO GET BEST RECOGNITION:
+# NOTE: ADAPT THE RGB SUBSTRACTOR PARAMETERS ON THE LOCATION YOU SET UP THE KINECT TO GET BEST RECOGNITION:
 backSubDepth = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=50, detectShadows=0)
-backSubRgb = cv2.createBackgroundSubtractorKNN() # use default parameters
+backSubRgb = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=400, detectShadows=1) # use default parameters
 #backSub = cv2.createBackgroundSubtractorMOG2() # performed worse then KNN
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
 if CACHE_SIZE < 4: CACHE_SIZE = 4
@@ -25,8 +25,8 @@ BLOB_MAX_SIZE = 40000
 BLOB_MIN_SIZE = 3000
 IMG_DEPTH = 0
 IMG_RGB = 1
-THRESHOLD = 480
-DEPTH = 380
+THRESHOLD = 814
+DEPTH = 152
 TIME_BETWEEN_FRAMES = 0.1 # good values for testing .3 (fast), 1 (slow)
 RELAY_PIN = 21
 relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
