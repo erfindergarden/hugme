@@ -173,8 +173,9 @@ def checkHugEvent(blobs):
         relay.on() # here the relay will be turned on
         sleep(0.5)
         relay.off()
+        sleep(15)
         relay.on()
-        sleep(20)
+        sleep(0.5)
         relay.off()
 
         #dummy = raw_input("Press key for next loop...") # Warten auf Tastatur, muss im Realbetrieb aus.
