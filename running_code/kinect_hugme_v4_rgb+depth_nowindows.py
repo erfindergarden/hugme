@@ -184,7 +184,7 @@ def checkHugEvent(blobs):
 ### INIT
 # Activate windows only for debug: 
 #cv2.namedWindow('Raw')
-cv2.namedWindow('FGMask')
+#cv2.namedWindow('FGMask')
 #cv2.namedWindow('FGMaskRaw')
 #cv2.namedWindow('Labels')
 
@@ -213,7 +213,7 @@ while 1:
 #   dummy = raw_input("Press key for next loop...")
  #   labeled_img = imshow_components(fgMask)
  #   cv2.imshow('Labels', labeled_img)
-    cv2.imshow('FGMask', fgMask)
+#   cv2.imshow('FGMask', fgMask)
     if cv2.waitKey(30) & 0xff == 27:
         break
 
