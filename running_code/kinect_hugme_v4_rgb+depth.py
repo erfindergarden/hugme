@@ -187,10 +187,7 @@ def show_video():
 ### INIT
 # Activate windows only for debug: 
 #cv2.namedWindow('Raw')
-<<<<<<< HEAD
 #cv2.namedWindow('Video')
-=======
->>>>>>> c42de6f079a230871977986dc83bbf9a432923a4
 cv2.namedWindow('FGMask')
 #cv2.namedWindow('FGMaskRaw')
 #cv2.namedWindow('Labels')
