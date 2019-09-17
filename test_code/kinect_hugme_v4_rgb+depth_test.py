@@ -85,7 +85,7 @@ class Blob:
         return blobs
 
 ### METHODS
-def get_img(mode):#, #showRaw=0):
+def get_img(mode, showRaw=0):
     # This was intended to inhibit the stream warnings to the console, but it did not work:
     #text_trap = io.StringIO()
     #sys.stderr = text_trap
@@ -121,7 +121,7 @@ def get_img(mode):#, #showRaw=0):
         
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels 
 
-    #if showRaw == 1: cv2.imshow('Raw', frame)
+    if showRaw == 1: cv2.imshow('Raw', frame)
     # Problem: this function gives us sometimes only one blob instead of two
     ret, labels, stats, centroids = cv2.connectedComponentsWithStats(fgMask)
     
@@ -180,17 +180,10 @@ def checkHugEvent(blobs):
 
         #dummy = raw_input("Press key for next loop...") # Warten auf Tastatur, muss im Realbetrieb aus.
         pre_distances = deque([10000] * CACHE_SIZE) # reset previous distances
-        
-def show_video():
-    cv2.imshow('Video', frame_convert2.video_cv(frame))
 
 ### INIT
 # Activate windows only for debug: 
 #cv2.namedWindow('Raw')
-<<<<<<< HEAD
-#cv2.namedWindow('Video')
-=======
->>>>>>> c42de6f079a230871977986dc83bbf9a432923a4
 cv2.namedWindow('FGMask')
 #cv2.namedWindow('FGMaskRaw')
 #cv2.namedWindow('Labels')
@@ -207,12 +200,12 @@ for num in range(1,10):
 while 1:
     #relay.toggle() #test relay
     #ret, frame, fgMask, labels, stats, centroids = get_img(IMG_RGB, showRaw=1)
-    ret, frame, fgMask, labels, stats, centroids = get_img(IMG_DEPTH)#, showRaw=1)
+    ret, frame, fgMask, labels, stats, centroids = get_img(IMG_DEPTH, showRaw=1)
     print("\033[H\033[J") # clear screen
     blobs = Blob.getBlobs(labels, stats, centroids)
     # If no blob was found, try RGB image:
     if blobs[0].width == 0 and blobs[0].height == 0 and blobs[1].width == 0 and blobs[1].height == 0:
-        ret, frame, fgMask, labels, stats, centroids = get_img(IMG_RGB)#, showRaw=1)
+        ret, frame, fgMask, labels, stats, centroids = get_img(IMG_RGB, showRaw=1)
         blobs = Blob.getBlobs(labels, stats, centroids)
 
     checkHugEvent(blobs)
@@ -221,7 +214,6 @@ while 1:
  #   labeled_img = imshow_components(fgMask)
  #   cv2.imshow('Labels', labeled_img)
     cv2.imshow('FGMask', fgMask)
-    #show_video()
     if cv2.waitKey(30) & 0xff == 27:
         break
 
