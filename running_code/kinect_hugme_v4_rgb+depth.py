@@ -15,8 +15,8 @@ KERNEL = np.ones((3,3), np.uint8)
 KERNEL_BIG = np.ones((9,9), np.uint8)
 # Create two independent background substractors, because RGB and depth image might need different parameters:
 # NOTE: ADAPT THE RGB SUBSTRACTOR PARAMETERS ON THE LOCATION YOU SET UP THE KINECT TO GET BEST RECOGNITION:
-backSubDepth = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=50, detectShadows=0)
-backSubRgb = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=400, detectShadows=1) # use default parameters
+backSubDepth = cv2.createBackgroundSubtractorKNN(history=10000, dist2Threshold=50, detectShadows=0)
+backSubRgb = cv2.createBackgroundSubtractorKNN(history=10000, dist2Threshold=400, detectShadows=1) # use default parameters
 #backSub = cv2.createBackgroundSubtractorMOG2() # performed worse then KNN
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
 if CACHE_SIZE < 4: CACHE_SIZE = 4
