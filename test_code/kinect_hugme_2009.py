@@ -7,6 +7,9 @@ import math, time, io, sys
 from collections import deque
 from time import sleep
 import gpiozero
+import datetime
+
+now = datetime.datetime.now
 
 
 
@@ -106,8 +109,21 @@ def get_img(mode):#, #showRaw=0):
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
         
 
+<<<<<<< HEAD
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels 
         print("RGB")
+=======
+        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels
+
+        #Farbbild zur Debug-Ausgabe
+        fgMask = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
+
+        cv2.putText(fgMask, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"),
+        (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255),1)
+
+        cv2.putText(col,"mode = RGB", (10, frame.shape[0] - 650), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+
+>>>>>>> 8904fe40bffe64db3b2d6a6accfde71dc739b943
     elif (mode == IMG_DEPTH):
         frame = freenect.sync_get_depth()[0] # gets the Kinect depth image
         fgMask = 255 * np.logical_and(frame >= DEPTH - THRESHOLD,
@@ -121,8 +137,22 @@ def get_img(mode):#, #showRaw=0):
         fgMask = cv2.erode(fgMask, KERNEL, iterations = 1) # morphological erode with 3x3
         
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels
+<<<<<<< HEAD
         
         print ("depth")
+=======
+
+        #Farbbild zur Debug-Ausgabe
+        fgMask = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
+
+
+        #print if Depth or RGB is used
+
+        cv2.putText(fgMask, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"),
+        (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255),1)
+
+        cv2.putText(col,"mode = Depth", (10, frame.shape[0] - 650), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+>>>>>>> 8904fe40bffe64db3b2d6a6accfde71dc739b943
 
     #if showRaw == 1: cv2.imshow('Raw', frame)
     # Problem: this function gives us sometimes only one blob instead of two
@@ -160,6 +190,7 @@ def checkHugEvent(blobs):
             print("pre %d: %d, pre %d: %d" % (i, pre_distances[i], i+1, pre_distances[i + 1]))
             if pre_distances[i] <= pre_distances[i + 1]:
                 valid = 0
+                #print LED
                 break
     else:
         print("NO EVENT")
@@ -173,6 +204,7 @@ def checkHugEvent(blobs):
         sleep(0.5) # maybe wait 1 second,
                         # because a blob is already detected when arms cross over
         print("Light on")
+        #print light on on mask und log event
         relay.on() # here the relay will be turned on
         sleep(0.5)
         relay.off()
