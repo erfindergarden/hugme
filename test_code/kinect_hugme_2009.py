@@ -107,6 +107,7 @@ def get_img(mode):#, #showRaw=0):
         
 
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels 
+        print("RGB")
     elif (mode == IMG_DEPTH):
         frame = freenect.sync_get_depth()[0] # gets the Kinect depth image
         fgMask = 255 * np.logical_and(frame >= DEPTH - THRESHOLD,
@@ -119,7 +120,9 @@ def get_img(mode):#, #showRaw=0):
         
         fgMask = cv2.erode(fgMask, KERNEL, iterations = 1) # morphological erode with 3x3
         
-        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels 
+        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels
+        
+        print ("depth")
 
     #if showRaw == 1: cv2.imshow('Raw', frame)
     # Problem: this function gives us sometimes only one blob instead of two
@@ -214,7 +217,6 @@ while 1:
         blobs = Blob.getBlobs(labels, stats, centroids)
 
     checkHugEvent(blobs)
-    print(mode)
     #sleep(TIME_BETWEEN_FRAMES)
 #   dummy = raw_input("Press key for next loop...")
  #   labeled_img = imshow_components(fgMask)
