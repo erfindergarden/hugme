@@ -214,7 +214,6 @@ while 1:
         blobs = Blob.getBlobs(labels, stats, centroids)
 
     checkHugEvent(blobs)
-    print(mode)
     #sleep(TIME_BETWEEN_FRAMES)
 #   dummy = raw_input("Press key for next loop...")
  #   labeled_img = imshow_components(fgMask)
