@@ -1,37 +1,36 @@
- #!/usr/bin/env python
+#!/usr/bin/env python
 import freenect
-import datetime
 import cv2
 import frame_convert2
 import numpy as np
-import math, time, io, sys
+import math, time, datetime, io, sys
 from collections import deque
-from time import sleep
 import gpiozero
-import imutils
 
-### GLOBAL VARIABLES
+### GLOBAL OBJECTS
 KERNEL = np.ones((3,3), np.uint8)
 KERNEL_BIG = np.ones((9,9), np.uint8)
 # Create two independent background substractors, because RGB and depth image might need different parameters:
-# NOTE: ADAPT THE RGB SUBSTRACTOR PARAMETERS ON THE LOCATION YOU SET UP THE KINECT TO GET BEST RECOGNITION:
+# NOTE: ADAPT THE BG SUBSTRACTOR PARAMETERS ON THE LOCATION YOU SET UP THE KINECT TO GET BEST RECOGNITION:
 backSubDepth = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=50, detectShadows=0)
-backSubRgb = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=50, detectShadows=0) # use default parameters
-#backSub = cv2.createBackgroundSubtractorMOG2() # performed worse then KNN
+backSubRgb = cv2.createBackgroundSubtractorKNN() # use default parameters
+#backSub = cv2.createBackgroundSubtractorMOG2() # not available - why?
+
+### GLOBAL CONSTANTS
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
 if CACHE_SIZE < 4: CACHE_SIZE = 4
-pre_distances = deque([10000] * CACHE_SIZE) # stores previous distances of the two biggest blobs to recognize valid movement
 BLOB_MAX_SIZE = 40000
-BLOB_MIN_SIZE = 1500
+BLOB_MIN_SIZE = 3000
 IMG_DEPTH = 0
 IMG_RGB = 1
-THRESHOLD = 814
-DEPTH = 152
-TIME_BETWEEN_FRAMES = 0 # good values for testing .3 (fast), 1 (slow)
+THRESHOLD = 480
+DEPTH = 380
+TIME_BETWEEN_FRAMES = 0.1 # good values for testing .3 (fast), 1 (slow)
 RELAY_PIN = 21
-relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
-col = 0
-now = datetime.datetime.now
+
+### GLOBAL VARIABLES
+pre_distances = deque([10000] * CACHE_SIZE) # stores previous distances of the two biggest blobs to recognize valid movement
+usedRecognitionMode = 0
 
 ### CLASSES
 class Blob:
@@ -87,60 +86,35 @@ class Blob:
         return blobs
 
 ### METHODS
-def get_img(mode):#, #showRaw=0):
-    global col
+def get_img(mode, showRaw=0):
     # This was intended to inhibit the stream warnings to the console, but it did not work:
     #text_trap = io.StringIO()
     #sys.stderr = text_trap
     if (mode == IMG_RGB):
         frame = freenect.sync_get_video()[0] # gets the Kinect RGB image
-        #frame = imutils.resize(frame, 600)
-
-        #background subsraction
-        #Learning Rate Parameter / -1 auto, 0 not updated at all, 1 new from last frame
         fgMask = backSubRgb.apply(frame, learningRate=-1)
-        
-        #threshold to get rid of any other color then black and white
-        #anything lighter then 127 will be set to 255 (white) anything lower to 0 (black)
-        # we dont need this if we turn shadows off
-        #thresold expects a single channel image // with shadows enabled its a greyscale image
-
-
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
+        fgMask = cv2.erode(fgMask, KERNEL, iterations = 1) # morphological erode with 3x3
+        #cv2.imshow('FGMaskRaw', fgMaskRaw)
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels 
     elif (mode == IMG_DEPTH):
         frame = freenect.sync_get_depth()[0] # gets the Kinect depth image
-        #frame = imutils.resize(frame, 600)
         fgMask = 255 * np.logical_and(frame >= DEPTH - THRESHOLD,
                                  frame <= DEPTH + THRESHOLD)
         fgMask = fgMask.astype(np.uint8)
-        
         fgMask = backSubDepth.apply(fgMask, learningRate=-1)
         # It looks like these operations are not needed for the depth image:
         #ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
-        
-        fgMask = cv2.erode(fgMask, KERNEL, iterations = 1) # morphological erode with 3x3
-        
-        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels 
-        
-    #Farbbild zur Debug-Ausgabe
-    col = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
+        #fgMask = cv2.erode(fgMask, KERNEL, iterations = 1) # morphological erode with 3x3
+        #fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels 
 
-    #if showRaw == 1: cv2.imshow('Raw', frame)
+    if showRaw == 1: cv2.imshow('Raw', frame)
     # Problem: this function gives us sometimes only one blob instead of two
     ret, labels, stats, centroids = cv2.connectedComponentsWithStats(fgMask)
     
     # Reset output to stdout:
     #sys.stderr = sys.__stderr__
     return ret, frame, fgMask, labels, stats, centroids
-
-def imshow_components(labels):
-    label_hue = np.uint8(179*labels/np.max(labels))
-    blank_ch = 255*np.ones_like(label_hue)
-    labeled_img = cv2.merge([label_hue, blank_ch, blank_ch])
-    labeled_img = cv2.cvtColor(labeled_img, cv2.COLOR_HSV2BGR)
-    labeled_img [label_hue==0] = 0
-    return labeled_img
 
 def checkHugEvent(blobs):
     global pre_distances
@@ -172,34 +146,25 @@ def checkHugEvent(blobs):
     pre_distances.popleft()
 
     if valid == 1:
-        sleep(0.5) # maybe wait 1 second,
+        # time.sleep(1) # maybe wait 1 second,
                         # because a blob is already detected when arms cross over
         print("Light on")
-        relay.on() # here the relay will be turned on
-        sleep(0.5)
-        relay.off()
-        sleep(15)
-        relay.on()
-        sleep(0.5)
-        relay.off()
+        #relay.on() # here the relay will be turned on
+        #time.sleep(5)
+        #relay.off()
 
-        #dummy = raw_input("Press key for next loop...") # Warten auf Tastatur, muss im Realbetrieb aus.
+        dummy = raw_input("Press key for next loop...") # Warten auf Tastatur, muss im Realbetrieb aus.
         pre_distances = deque([10000] * CACHE_SIZE) # reset previous distances
-        
-def show_video():
-    cv2.imshow('Video', frame_convert2.video_cv(frame))
 
-### INIT
+### INITIALIZATION
 # Activate windows only for debug: 
-#cv2.namedWindow('Raw')
-#cv2.namedWindow('Video')
+cv2.namedWindow('Raw')
 cv2.namedWindow('FGMask')
 #cv2.namedWindow('FGMaskRaw')
-cv2.namedWindow('Farbbild')
-
+#relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
 print('Press ESC in window to stop')
 
-# It seems the first captures are wrong and/or the library needs some tim
+# It seems the first captures are wrong and/or the library needs some time
 # to initialize the background image, so some images are skipped at start:
 for num in range(1,10):
     get_img(IMG_DEPTH)
@@ -208,27 +173,26 @@ for num in range(1,10):
 ### LOOP
 while 1:
     #relay.toggle() #test relay
-    #ret, frame, fgMask, labels, stats, centroids = get_img(IMG_RGB, showRaw=1)
-    ret, frame, fgMask, labels, stats, centroids = get_img(IMG_DEPTH)#, showRaw=1)
+    usedRecognitionMode = IMG_DEPTH
+    ret, frame, fgMask, labels, stats, centroids = get_img(IMG_DEPTH, showRaw=1)
     print("\033[H\033[J") # clear screen
-
     blobs = Blob.getBlobs(labels, stats, centroids)
     # If no blob was found, try RGB image:
     if blobs[0].width == 0 and blobs[0].height == 0 and blobs[1].width == 0 and blobs[1].height == 0:
-        ret, frame, fgMask, labels, stats, centroids = get_img(IMG_RGB)#, showRaw=1)
+        usedRecognitionMode = IMG_RGB
+        ret, frame, fgMask, labels, stats, centroids = get_img(IMG_RGB, showRaw=1)
         blobs = Blob.getBlobs(labels, stats, centroids)
 
     checkHugEvent(blobs)
-    #sleep(TIME_BETWEEN_FRAMES)
-#   dummy = raw_input("Press key for next loop...")
- #   labeled_img = imshow_components(fgMask)
+    #time.sleep(TIME_BETWEEN_FRAMES)
+    #dummy = raw_input("Press key for next loop...")
+    col = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
+    cv2.putText(col,("RGB" if usedRecognitionMode == IMG_RGB else "DEPTH"), (5, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.35, 255)
+    cv2.putText(col, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"),
+        (5, 429), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255),1)
     for blob in blobs:
         cv2.circle(col, (int(blob.x_center), int(blob.y_center)), int(blob.width/2), (0, 255, 255), 2)
-    cv2.putText(col, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"),
-        (5, 470), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255),1)
-    cv2.imshow('Farbbild', col)
-    cv2.imshow('FGMask', fgMask)
-    #show_video()
+    cv2.imshow('FGMask', col)
     if cv2.waitKey(30) & 0xff == 27:
         break
 
