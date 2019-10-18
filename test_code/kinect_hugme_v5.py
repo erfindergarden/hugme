@@ -13,9 +13,8 @@ KERNEL = np.ones((3,3), np.uint8)
 KERNEL_BIG = np.ones((9,9), np.uint8)
 # Create two independent background substractors, because RGB and depth image might need different parameters:
 # NOTE: ADAPT THE BG SUBSTRACTOR PARAMETERS ON THE LOCATION YOU SET UP THE KINECT TO GET BEST RECOGNITION:
-backSubDepth = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=50, detectShadows=0)
-backSubRgb = cv2.createBackgroundSubtractorKNN() # use default parameters
-#backSub = cv2.createBackgroundSubtractorMOG2() # not available - why?
+backSubDepth = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=400, detectShadows=0)
+backSubRgb = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=50, detectShadows=0)
 
 ### GLOBAL CONSTANTS
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
@@ -24,8 +23,8 @@ BLOB_MAX_SIZE = 40000
 BLOB_MIN_SIZE = 3000
 IMG_DEPTH = 0
 IMG_RGB = 1
-THRESHOLD = 480
-DEPTH = 380
+THRESHOLD = 814
+DEPTH = 152
 TIME_BETWEEN_FRAMES = 0.1 # good values for testing .3 (fast), 1 (slow)
 RELAY_PIN = 21
 
@@ -95,7 +94,7 @@ def get_img(mode, showRaw=0):
         frame = freenect.sync_get_video()[0] # gets the Kinect RGB image
         fgMask = backSubRgb.apply(frame, learningRate=-1)
         ret, fgMask = cv2.threshold(fgMask,127,255,cv2.THRESH_BINARY)
-        fgMask = cv2.erode(fgMask, KERNEL, iterations = 1) # morphological erode with 3x3
+        #fgMask = cv2.erode(fgMask, KERNEL, iterations = 1) # morphological erode with 3x3
         #cv2.imshow('FGMaskRaw', fgMaskRaw)
         fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels 
     elif (mode == IMG_DEPTH):

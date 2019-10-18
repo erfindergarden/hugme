@@ -2,6 +2,7 @@
 import freenect
 import cv2
 import numpy as np
+import imutils
 
 cap = cv2.VideoCapture(0)
 #kernel = np.ones((3,3), np.uint8)
@@ -16,6 +17,7 @@ print("Your OpenCV version: {}".format(cv2.__version__))
 
 while True:
     _, frame = cap.read()
+    
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     cv2.imshow('Original', frame)
     normal = cv2.equalizeHist(frame)

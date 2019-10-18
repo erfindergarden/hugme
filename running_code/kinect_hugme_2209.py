@@ -8,7 +8,7 @@ import math, time, io, sys
 from collections import deque
 from time import sleep
 import gpiozero
-import imutils
+#import imutils
 
 ### GLOBAL VARIABLES
 KERNEL = np.ones((3,3), np.uint8)
