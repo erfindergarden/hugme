@@ -7,6 +7,9 @@ import math, time, io, sys
 from collections import deque
 from time import sleep
 import gpiozero
+import datetime
+
+now = datetime.datetime.now
 
 
 
@@ -15,7 +18,7 @@ KERNEL = np.ones((3,3), np.uint8)
 KERNEL_BIG = np.ones((9,9), np.uint8)
 # Create two independent background substractors, because RGB and depth image might need different parameters:
 # NOTE: ADAPT THE RGB SUBSTRACTOR PARAMETERS ON THE LOCATION YOU SET UP THE KINECT TO GET BEST RECOGNITION:
-backSubDepth = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=400, detectShadows=0)
+backSubDepth = cv2.createBackgroundSubtractorKNN(history=1000, dist2Threshold=50, detectShadows=0)
 backSubRgb = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=50, detectShadows=0) # use default parameters
 #backSub = cv2.createBackgroundSubtractorMOG2() # performed worse then KNN
 CACHE_SIZE = 4 # size of the list that stores previous distance values, must be 4 or greater
@@ -119,7 +122,10 @@ def get_img(mode):#, #showRaw=0):
         
         fgMask = cv2.erode(fgMask, KERNEL, iterations = 2) # morphological erode with 3x3
         
-        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels 
+        fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, KERNEL_BIG) # closes gaps smaller than 9x9 pixels
+        
+        #Farbbild zur Debug-Ausgabe
+        col = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2BGR)
 
     #if showRaw == 1: cv2.imshow('Raw', frame)
     # Problem: this function gives us sometimes only one blob instead of two
